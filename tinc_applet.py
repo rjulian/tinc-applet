@@ -35,48 +35,66 @@ if not os.geteuid() == 0:
 class TincAppletIndicator(object):
     def __init__(self):
         self.first_run = True
-        indicator = appindicator.Indicator.new(APPINDICATOR_ID, ICON_PATH, appindicator.IndicatorCategory.SYSTEM_SERVICES)
-        indicator.set_status(appindicator.IndicatorStatus.ACTIVE)
-        indicator.set_menu(self.build_menu())
+        self.indicator = appindicator.Indicator.new(APPINDICATOR_ID, ICON_PATH, appindicator.IndicatorCategory.SYSTEM_SERVICES)
+        self.indicator.set_status(appindicator.IndicatorStatus.ACTIVE)
+        self.indicator.set_menu(self.build_menu())
 
         ## Update indicator every x seconds with newly discovered/removed nodes.
-        glib.timeout_add_seconds(300, self.indicator_refresh, indicator)
+        glib.timeout_add_seconds(300, self.indicator_refresh, self.indicator)
         notify.init(APPINDICATOR_ID)
         gtk.main()
 
     def indicator_refresh(self, indicator):
-        indicator.set_menu(self.build_menu())
+        self.indicator.set_menu(self.build_menu())
         return True
 
     def build_menu(self):
         menu = gtk.Menu()
         node_menu = gtk.Menu()
+
+        # Submenu for displaying currently reachable nodes as described by the tinc command
         item_nodes = gtk.MenuItem('Connected Nodes')
         item_nodes.set_submenu(node_menu)
         menu.append(item_nodes)
         self.update_nodes_menu(node_menu)
+
+        # Restart tinc using tinc restart command
         item_restart = gtk.MenuItem('Restart')
         item_restart.connect('activate', self.restart)
         menu.append(item_restart)
+
+        # Does a manual indicator refresh, causing the entire menu to be rewritten
+        item_refresh_nodes = gtk.MenuItem('Refresh Node List')
+        item_refresh_nodes.connect('activate', self.manual_refresh)
+        menu.append(item_refresh_nodes)
+
+        # Quit the applet
         item_quit = gtk.MenuItem('Quit')
         item_quit.connect('activate', self.quit)
         menu.append(item_quit)
+
         menu.show_all()
+
         return menu
 
+    def manual_refresh(self, object):
+        self.indicator_refresh(self.indicator)
+
     def update_nodes_menu(self,menu):
-        print("Updating nodes!")
+        # Calls for tinc to dump its reachable nodes, returns as array of node names.
         new_nodes = self.get_reachable_nodes()
         for new_node in new_nodes:
             item_node = gtk.MenuItem(new_node)
             menu.append(item_node)
+
+        # Checks if newly appearing nodes in our node_list, with the exception of the first run (when self.old_nodes is empty)
         if self.first_run == True:
             self.first_run = False
         else:
             intro_nodes, removed_nodes = self.diff_updated_nodes(new_nodes,self.old_nodes)
             self.notify_new_or_removed_nodes(intro_nodes, removed_nodes)
         self.old_nodes = new_nodes
-        return True
+
 
     def diff_updated_nodes(self, new_nodes, old_nodes):
         if old_nodes:
@@ -97,8 +115,8 @@ class TincAppletIndicator(object):
 
     def restart(self, state):
         """ Has tinc restart itself """
+        restart_stream = os.popen("tinc restart")
         notify.uninit()
-        print("Restarting Tinc: exec tincd restart")
 
     def quit(self, state):
         notify.uninit()
