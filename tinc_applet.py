@@ -24,10 +24,12 @@ from gi.repository import Gtk as gtk
 from gi.repository import AppIndicator3 as appindicator
 from gi.repository import Notify as notify
 
+import config
+
 APPINDICATOR_ID = 'tinc-applet'
 
 ICON_PATH = os.path.dirname(os.path.abspath(__file__)) + '/img/helicopter-green-icon.svg'
-# helicopter icon courtesy of wikipedia user André437 !
+# helicopter icon courtesy of wikipedia user Andre437!
 
 if not os.geteuid() == 0:
     sys.exit('Must be root!')
@@ -40,7 +42,7 @@ class TincAppletIndicator(object):
         self.indicator.set_menu(self.build_menu())
 
         ## Update indicator every x seconds with newly discovered/removed nodes.
-        glib.timeout_add_seconds(300, self.indicator_refresh, self.indicator)
+        glib.timeout_add_seconds(config.check_interval, self.indicator_refresh, self.indicator)
         notify.init(APPINDICATOR_ID)
         gtk.main()
 
@@ -62,6 +64,11 @@ class TincAppletIndicator(object):
         item_restart = gtk.MenuItem('Restart')
         item_restart.connect('activate', self.restart)
         menu.append(item_restart)
+
+        # Restart tinc using tinc restart command
+        item_retry = gtk.MenuItem('Retry All Connections')
+        item_retry.connect('activate', self.retry)
+        menu.append(item_retry)
 
         # Does a manual indicator refresh, causing the entire menu to be rewritten
         item_refresh_nodes = gtk.MenuItem('Refresh Node List')
@@ -103,15 +110,21 @@ class TincAppletIndicator(object):
             return (newer_nodes, removed_nodes)
 
     def notify_new_or_removed_nodes(self, intro_nodes, removed_nodes):
-        for node in intro_nodes:
-            notify.Notification.new("New Node Reachable", node, None).show()
-        for node in removed_nodes:
-            notify.Notification.new("Node Now Unreachable", node, None).show()
+        if config.show_notifications == True:
+            for node in intro_nodes:
+                notify.Notification.new("New Node Reachable", node, None).show()
+            for node in removed_nodes:
+                notify.Notification.new("Node Now Unreachable", node, None).show()
 
     def get_reachable_nodes(self):
         reachable_stream = os.popen("tinc dump reachable nodes | cut -d' ' -f1")
         nodes = reachable_stream.read().splitlines()
         return nodes
+
+    def retry(self, state):
+        """ Has tinc restart itself """
+        restart_stream = os.popen("tinc retry")
+        notify.uninit()
 
     def restart(self, state):
         """ Has tinc restart itself """
