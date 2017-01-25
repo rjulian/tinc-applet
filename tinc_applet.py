@@ -18,6 +18,7 @@ import signal
 import json
 import os
 import sys
+import gi
 
 from gi.repository import GLib as glib
 from gi.repository import Gtk as gtk
@@ -31,8 +32,6 @@ APPINDICATOR_ID = 'tinc-applet'
 ICON_PATH = os.path.dirname(os.path.abspath(__file__)) + '/img/helicopter-green-icon.svg'
 # helicopter icon courtesy of wikipedia user Andre437!
 
-if not os.geteuid() == 0:
-    sys.exit('Must be root!')
 
 class TincAppletIndicator(object):
     def __init__(self):
