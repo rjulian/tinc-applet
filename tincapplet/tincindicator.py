@@ -25,13 +25,15 @@ from gi.repository import Gtk as gtk
 from gi.repository import AppIndicator3 as appindicator
 from gi.repository import Notify as notify
 
-import config
+from tincapplet import config
 
 APPINDICATOR_ID = 'tinc-applet'
 
-ICON_PATH = os.path.dirname(os.path.abspath(__file__)) + '/img/helicopter-green-icon.svg'
+ICON_PATH = '/usr/share/tinc-applet/img/helicopter-green-icon.svg'
 # helicopter icon courtesy of wikipedia user Andre437!
 
+if not os.geteuid() == 0:
+    sys.exit('Must be root!')
 
 class TincAppletIndicator(object):
     def __init__(self):

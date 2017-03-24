@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Tinc Network Indicator
+Comment=View state of nodes connected to your tinc network
+Exec=gksudo tinc-applet
+Icon=/usr/share/tincapplet/img/helicopter-green-icon.svg
+Type=Application
+Terminal=false
+Categories=GNOME;GTK;Utility;
